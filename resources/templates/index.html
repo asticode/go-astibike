@@ -2,9 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Astibike - should I travel by bike this week?</title>
+    <link rel="stylesheet" href="/static/css/base.css"/>
 </head>
 <body>
-caca
+<div class="table">
+    {{ $base := . }}
+    <div class="row">
+        <div class="cell cell-hour-name"></div>
+        {{ range $key, $value := .OrderedHours }}
+            <div class="cell cell-hour-name">{{ $value }}</div>
+        {{ end }}
+    </div>
+    {{ range $key, $weekDay := .OrderedDays }}
+        {{ $dataDay := (index $base.Days $weekDay ) }}
+        <div class="row">
+            <div class="cell cell-padding cell-day-name">{{ $dataDay.Label }}</div>
+            {{ range $key, $value := $base.OrderedHours }}
+                {{ $dataHour := (index $dataDay.Hours $value ) }}
+                {{ if not $dataHour.Temperature }}
+                    <div class="cell cell-item"></div>
+                {{ else }}
+                    <div class="cell cell-item">
+                        <div class="item grade-{{ $dataHour.Grade }}">
+                            <div class="table">
+                                <div class="row">
+                                    <div class="cell cell-img"><img src="/static/img/temp.png"/></div>
+                                    <div class="cell cell-value">{{ $dataHour.Temperature }}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="cell cell-img"><img src="/static/img/rain.png"/></div>
+                                    <div class="cell cell-value">{{ $dataHour.PrecipitationProbability }}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="cell cell-img"><img src="/static/img/wind.png"/></div>
+                                    <div class="cell cell-value">
+                                        {{ $dataHour.WindSpeed }}<span style="display: inline-block; transform: rotate({{ $dataHour.WindRotate }}deg)">↑</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {{ end }}
+            {{ end }}
+        </div>
+    {{ end }}
+</div>
 </body>
 </html>

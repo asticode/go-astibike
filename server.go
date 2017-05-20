@@ -8,6 +8,10 @@ import (
 	"text/template"
 	"time"
 
+	"strconv"
+
+	"fmt"
+
 	"github.com/asticode/go-astibike/darksky"
 	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astiredis"
@@ -96,25 +100,6 @@ func (s Server) ListenAndServer() error {
 	return http.ListenAndServe(s.addr, s.router)
 }
 
-// handleIndex handles the /index route
-func (s Server) handleIndex(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	// Get forecast
-	var d []astidarksky.DataPoint
-	var err error
-	if d, err = s.hourlyForecast(); err != nil {
-		astilog.Error(err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	// Execute template
-	if err = s.templates.ExecuteTemplate(rw, "/index.html", d); err != nil {
-		astilog.Error(err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-}
-
 // hourlyForecast retrieves the hourly forecast
 func (s Server) hourlyForecast() (d []astidarksky.DataPoint, err error) {
 	// Check in redis first
@@ -132,4 +117,92 @@ func (s Server) hourlyForecast() (d []astidarksky.DataPoint, err error) {
 		return
 	}
 	return
+}
+
+// Data is a data sent to the template
+type Data struct {
+	Days         map[string]DataDay
+	OrderedDays  []string
+	OrderedHours []string
+}
+
+// DataDay is a data representing a day
+type DataDay struct {
+	Hours map[string]DataHour
+	Label string
+}
+
+// DataHour is a data representing an hour
+type DataHour struct {
+	Grade                    int
+	PrecipitationProbability string
+	Temperature              string
+	WindRotate               int
+	WindSpeed                string
+}
+
+// handleIndex handles the /index route
+func (s Server) handleIndex(rw http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	// Get hourly forecast
+	var dps []astidarksky.DataPoint
+	var err error
+	if dps, err = s.hourlyForecast(); err != nil {
+		astilog.Error(err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Init data
+	var d = Data{
+		Days:         make(map[string]DataDay),
+		OrderedHours: []string{"08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"},
+	}
+	var previousDay string
+	for _, dp := range dps {
+		// Init data day
+		var dn = fmt.Sprintf("%s - %s", dp.Timestamp.Weekday(), dp.Timestamp.Format("02/01"))
+		if _, ok := d.Days[dn]; !ok {
+			d.Days[dn] = DataDay{
+				Hours: make(map[string]DataHour),
+				Label: dn,
+			}
+		}
+
+		// Add data hour
+		d.Days[dn].Hours[dp.Timestamp.Format("15:04")] = DataHour{
+			Grade: grade(dp),
+			PrecipitationProbability: strconv.Itoa(int(dp.PrecipitationProbability*100)) + "%",
+			Temperature:              strconv.FormatFloat(dp.ApparentTemperature, 'f', 1, 64) + "°",
+			WindRotate:               int(dp.WindBearing),
+			WindSpeed:                strconv.FormatFloat(dp.WindSpeed, 'f', 0, 64) + "m/s",
+		}
+
+		// Add ordered days
+		if previousDay == "" || previousDay != dn {
+			previousDay = dn
+			d.OrderedDays = append(d.OrderedDays, dn)
+		}
+	}
+
+	// Execute template
+	if err = s.templates.ExecuteTemplate(rw, "/index.html", d); err != nil {
+		astilog.Error(err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+// grade grades a data point
+// grades are between 0 and 4 included
+func grade(d astidarksky.DataPoint) int {
+	if d.ApparentTemperature > 15 && d.ApparentTemperature < 30 && d.PrecipitationProbability == 0 && d.WindSpeed < 6 {
+		return 4
+	} else if d.ApparentTemperature > 10 && d.PrecipitationProbability == 0 && d.WindSpeed < 6 {
+		return 3
+	} else if d.ApparentTemperature > 10 && d.PrecipitationProbability < 0.1 && d.WindSpeed < 6 {
+		return 2
+	} else if d.ApparentTemperature > 10 && d.PrecipitationProbability < 0.2 {
+		return 1
+	}
+	return 0
 }

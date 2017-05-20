@@ -40,7 +40,7 @@ type DataPoint struct {
 	Timestamp                astitime.Timestamp `json:"time"`
 	Visibility               float64            `json:"visibility"`  // in kilometers
 	WindBearing              float64            `json:"windBearing"` // true north at 0°
-	WindSpeed                float64            `json:"windBearing"` // meters per second
+	WindSpeed                float64            `json:"windSpeed"`   // meters per second
 }
 
 // HourlyForecast returns the hourly forecast for a set of latitude and longitude
