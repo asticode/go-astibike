@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/asticode/go-astibike/darksky"
 	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astiredis"
 	"github.com/asticode/go-astitools/flag"
@@ -22,8 +23,11 @@ func main() {
 	// Init redis
 	var r = astiredis.New(c.Redis)
 
+	// Init dark sky client
+	var d = astidarksky.New(c.DarkSky)
+
 	// Init server
-	var srv = NewServer(c.ServerAddr, r)
+	var srv = NewServer(c.ServerAddr, d, r)
 	defer srv.Close()
 	if err := srv.Init(c); err != nil {
 		astilog.Fatal(err)

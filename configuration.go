@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/BurntSushi/toml"
+	"github.com/asticode/go-astibike/darksky"
 	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astiredis"
 	"github.com/imdario/mergo"
@@ -19,11 +20,12 @@ var (
 
 // Configuration represents a configuration
 type Configuration struct {
-	Logger        astilog.Configuration   `toml:"logger"`
-	PathStatic    string                  `toml:"path_static"`
-	PathTemplates string                  `toml:"path_templates"`
-	Redis         astiredis.Configuration `toml:"redis"`
-	ServerAddr    string                  `toml:"server_addr"` // Should be of the form host:port
+	DarkSky       astidarksky.Configuration `toml:"dark_sky"`
+	Logger        astilog.Configuration     `toml:"logger"`
+	PathStatic    string                    `toml:"path_static"`
+	PathTemplates string                    `toml:"path_templates"`
+	Redis         astiredis.Configuration   `toml:"redis"`
+	ServerAddr    string                    `toml:"server_addr"` // Should be of the form host:port
 }
 
 // TOMLDecodeFile allows testing functions using it
@@ -41,9 +43,8 @@ func NewConfiguration() Configuration {
 		PathStatic:    "static",
 		PathTemplates: "templates",
 		Redis: astiredis.Configuration{
-			Prefix: "astibike:",
+			Prefix: "astibike",
 		},
-		ServerAddr: "127.0.0.1:4000",
 	}
 
 	// Local config
@@ -56,6 +57,7 @@ func NewConfiguration() Configuration {
 
 	// Flag config
 	var c = Configuration{
+		DarkSky:       astidarksky.FlagConfig(),
 		Logger:        astilog.FlagConfig(),
 		PathStatic:    *pathStatic,
 		PathTemplates: *pathTemplates,
