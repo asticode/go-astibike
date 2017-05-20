@@ -40,8 +40,8 @@ func NewConfiguration() Configuration {
 		Logger: astilog.Configuration{
 			AppName: "astibike",
 		},
-		PathStatic:    "static",
-		PathTemplates: "templates",
+		PathStatic:    "resources/static",
+		PathTemplates: "resources/templates",
 		Redis: astiredis.Configuration{
 			Prefix: "astibike",
 		},

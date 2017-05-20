@@ -1,3 +1,4 @@
 .idea/
+deploy.sh
 go-astibike
 local.toml
